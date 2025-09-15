@@ -1,8 +1,9 @@
 import pandas as pd
 import argparse
+import sqlite3
 
-def profiling(file_path, save_csv = False):
-    # version 1 
+def profiling(file_path, save_csv = False, save_db = False):
+    # version 1 --> CLI based output
     df = pd.read_csv(file_path)
     total_rows = len(df)
     total_cols = df.shape[1]
@@ -21,30 +22,49 @@ def profiling(file_path, save_csv = False):
         print(f"  Null %: {null_percentage[col]}%")
         print(f"  Duplicate Count: {col_dup_count}")
         print(f"  Duplicate %: {col_dup_percent}%")
+# metrics for csv and db
+    metrics = []
+    metric_types = ["Total Rows", "Total Columns", "Row-wise Duplicate Count", "Row-wise Duplicate %"]
+    values = [total_rows, total_cols, duplicate_count, duplicate_percentage]
+    metrics.extend({"Metric Type": m, "Value": v} for m, v in zip(metric_types, values))
+    for col in df.columns:
+        col_dup_count = df[col].duplicated().sum()
+        col_dup_percent = round((col_dup_count / total_rows) * 100, 2)
+        metric_types = [
+            f"Null Count [{col}]",
+            f"Null % [{col}]",
+            f"Duplicate Count [{col}]",
+            f"Duplicate % [{col}]"
+        ]
+        values = [null_counts[col], null_percentage[col], col_dup_count, col_dup_percent]
+        metrics.extend({"Metric Type": m, "Value": v} for m, v in zip(metric_types, values))
+
 
 # version 2 --> csv based output
     if save_csv:
-        metrics = []
-        metric_types = ["Total Rows","Total Columns","Row-wise Duplicate Count","Row-wise Duplicate %"]
-        values = [total_rows, total_cols, duplicate_count, duplicate_percentage]
-        metrics.extend({"Metric Type": m, "Value": v} for m, v in zip(metric_types, values))
-        for col in df.columns:
-                col_dup_count = df[col].duplicated().sum()
-                col_dup_percent = round((col_dup_count / total_rows) * 100, 2)
-                metric_types = [
-                    f"Null Count [{col}]",
-                    f"Null % [{col}]",
-                    f"Duplicate Count [{col}]",
-                    f"Duplicate % [{col}]"
-                ]
-                values = [null_counts[col], null_percentage[col], col_dup_count, col_dup_percent]
-                metrics.extend({"Metric Type": m, "Value": v} for m, v in zip(metric_types, values))
-
         report = pd.DataFrame(metrics)
         output_file = file_path.replace(".csv", "_profiling_report.csv")
         report.to_csv(output_file, index=False)
         print('csv saved')
 
+# version 3 --> DB output
+    if save_db:
+        conn = sqlite3.connect('profiling.db')
+        cursor = conn.cursor()
+        cursor.execute("""
+           CREATE TABLE IF NOT EXISTS metrics (
+           id INTEGER PRIMARY KEY AUTOINCREMENT,
+           file_name TEXT,
+           metric_type TEXT,
+           value REAL
+           )
+                       """)
+        rows = [(file_path, m["Metric Type"], m["Value"]) for m in metrics]
+        cursor.executemany("INSERT INTO metrics (file_name, metric_type, value) VALUES (?, ?, ?)", rows)
+        conn.commit()
+        conn.close()        
+        print('Metrics saved in db')
+         
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CLI-based CSV profiling")
@@ -55,8 +75,8 @@ if __name__ == "__main__":
     help="Path to the CSV file"
 )
     parser.add_argument("--csv", action="store_true", help="Also save metrics to CSV")
-
+    parser.add_argument("--db", action="store_true", help = "Also save metrics to DB")
     args = parser.parse_args()
 
-    profiling(args.file, save_csv = args.csv)
-      
+    profiling(args.file, save_csv = args.csv, save_db = args.db)
+    
