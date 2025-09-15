@@ -64,6 +64,23 @@ def profiling(file_path, save_csv = False, save_db = False):
         conn.commit()
         conn.close()        
         print('Metrics saved in db')
+
+def read_db(file_name = None):
+    conn = sqlite3.connect('profiling.db')
+    cursor = conn.cursor()
+    if file_name:
+        cursor.execute(
+        "SELECT file_name, metric_type, value FROM metrics WHERE file_name = ?",(file_name,)
+    )
+    else:
+        cursor.execute("SELECT file_name, metric_type, value FROM metrics")
+
+    rows = cursor.fetchall()
+    conn.close()
+    data = pd.DataFrame(rows, columns=['File Name','Metric Type', 'Value'])
+    print('Data read from DB: \n', data)
+    return data
+
          
 
 if __name__ == "__main__":
@@ -76,7 +93,11 @@ if __name__ == "__main__":
 )
     parser.add_argument("--csv", action="store_true", help="Also save metrics to CSV")
     parser.add_argument("--db", action="store_true", help = "Also save metrics to DB")
+    parser.add_argument("--read-db", action="store_true", help="Read metrics from DB instead of profiling CSV")
+    parser.add_argument("--file-name", type=str, help="File name to filter metrics when reading from DB")
     args = parser.parse_args()
-
-    profiling(args.file, save_csv = args.csv, save_db = args.db)
+    if args.read_db:
+        read_db(file_name=args.file_name)
+    else:
+        profiling(args.file, save_csv = args.csv, save_db = args.db)
     
