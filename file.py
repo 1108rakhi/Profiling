@@ -65,6 +65,7 @@ def profiling(file_path, save_csv = False, save_db = False):
         conn.close()        
         print('Metrics saved in db')
 
+# version 4 ---> Read from DB
 def read_db(file_name = None):
     conn = sqlite3.connect('profiling.db')
     cursor = conn.cursor()
