@@ -1,0 +1,37 @@
+Metric Type,Value
+Total Rows,3986.0
+Total Columns,8.0
+Row-wise Duplicate Count,209.0
+Row-wise Duplicate %,5.24
+Null Count [goods-title-link--jump],3946.0
+Null % [goods-title-link--jump],99.0
+Duplicate Count [goods-title-link--jump],3945.0
+Duplicate % [goods-title-link--jump],98.97
+Null Count [goods-title-link--jump href],3946.0
+Null % [goods-title-link--jump href],99.0
+Duplicate Count [goods-title-link--jump href],3945.0
+Duplicate % [goods-title-link--jump href],98.97
+Null Count [rank-title],3427.0
+Null % [rank-title],85.98
+Duplicate Count [rank-title],3975.0
+Duplicate % [rank-title],99.72
+Null Count [rank-sub],3427.0
+Null % [rank-sub],85.98
+Duplicate Count [rank-sub],3861.0
+Duplicate % [rank-sub],96.86
+Null Count [price],0.0
+Null % [price],0.0
+Duplicate Count [price],2474.0
+Duplicate % [price],62.07
+Null Count [discount],1527.0
+Null % [discount],38.31
+Duplicate Count [discount],3905.0
+Duplicate % [discount],97.97
+Null Count [selling_proposition],2625.0
+Null % [selling_proposition],65.86
+Duplicate Count [selling_proposition],3921.0
+Duplicate % [selling_proposition],98.37
+Null Count [goods-title-link],40.0
+Null % [goods-title-link],1.0
+Duplicate Count [goods-title-link],395.0
+Duplicate % [goods-title-link],9.91
