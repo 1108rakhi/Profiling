@@ -12,11 +12,6 @@ def profiling(file_path):
     print("Profiling Report for:", file_path)
     print('Total rows are:\n', total_rows)
     print('Total columns are:\n', total_cols)
-<<<<<<< Updated upstream
-=======
-    print('Total Duplicate count:\n', duplicate_count)
-    print('Duplicate Percentage:\n', duplicate_percentage)
->>>>>>> Stashed changes
     for col in df.columns:
         col_dup_count = df[col].duplicated().sum()   
         col_dup_percent = round((col_dup_count / total_rows) * 100, 2)
