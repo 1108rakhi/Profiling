@@ -1,0 +1,33 @@
+Metric Type,Value
+Total Rows,351
+Total Columns,7
+Row-wise Duplicate Count,0
+Row-wise Duplicate %,0
+Null Count [ID],0
+Null % [ID],0
+Duplicate Count [ID],0
+Duplicate % [ID],0
+Null Count [NAME],0
+Null % [NAME],0
+Duplicate Count [NAME],0
+Duplicate % [NAME],0
+Null Count [WEBSITE],10
+Null % [WEBSITE],2.85
+Duplicate Count [WEBSITE],9
+Duplicate % [WEBSITE],2.56
+Null Count [LAT],15
+Null % [LAT],4.27
+Duplicate Count [LAT],14
+Duplicate % [LAT],3.99
+Null Count [LONGITUDE],15
+Null % [LONGITUDE],4.27
+Duplicate Count [LONGITUDE],14
+Duplicate % [LONGITUDE],3.99
+Null Count [PRIMARY_POC],14
+Null % [PRIMARY_POC],3.99
+Duplicate Count [PRIMARY_POC],34
+Duplicate % [PRIMARY_POC],9.69
+Null Count [SALES_REP_ID],14
+Null % [SALES_REP_ID],3.99
+Duplicate Count [SALES_REP_ID],300
+Duplicate % [SALES_REP_ID],85.47
