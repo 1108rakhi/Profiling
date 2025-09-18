@@ -1,35 +1,66 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from pydantic import BaseModel
 import pandas as pd
+from fastapi import FastAPI, Depends
 
+# Setting up databse
+metrics_db_url = "mysql+mysqlconnector://root:rootroot@localhost:3306/metrics_db"  # tells sql alchemy how to connect to db
+engine = create_engine(metrics_db_url, echo = True)
+SessionLocal = sessionmaker(autocommit=False,autoflush=False, bind=engine)
 Base = declarative_base()
 
+#SQLAlchemy models
 class Metrics(Base):
     __tablename__ = "metrics"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     db_name = Column(String(255), nullable=False)       
     table_name = Column(String(255), nullable=False)    
-    metric_type = Column(String(255), nullable=False, )   
-    value = Column(Float, nullable=False)
+    metric_type = Column(String(255), nullable=False)   
+    value = Column(Float)
+Base.metadata.create_all(bind=engine)
 
-class MetricModel(BaseModel):
+
+# pydantic models
+class MetricCreate(BaseModel):
+    db_input_url : str
+    db_name : str
+    table_name : str
+
+class MetricResponse(BaseModel):
+    id : int
     db_name : str
     table_name : str
     metric_type : str
     value : float
+    # class Config:
+    #     orm_mode = True
 
 
-def profiling(db_input_url : str, db_output_url : str, db_name : str, table_name: str ):
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def profiling_metrics(db_input_url : str, db_name : str, table_name: str):
     
-    input_engine = create_engine(db_input_url)
-    df = pd.read_sql(f'SELECT * FROM {table_name};', input_engine)
+    input_engine = create_engine(db_input_url)  # connecting to input db
+    df = pd.read_sql(f"SELECT * FROM {table_name};", input_engine)
+
 
     total_rows = len(df)
     total_cols = df.shape[1]
     null_counts = df.isnull().sum()
-    null_percentage = round((null_counts / total_rows) * 100, 2) if total_rows > 0 else 0
+
+    if total_rows > 0:
+        null_percentage = (null_counts / total_rows * 100).round(2)
+    else:
+        null_percentage = pd.Series([0] * len(df.columns), index=df.columns)
+
     duplicate_count = df.duplicated().sum()
     duplicate_percentage = round((duplicate_count / total_rows) * 100, 2) if total_rows > 0 else 0
 
@@ -52,26 +83,27 @@ def profiling(db_input_url : str, db_output_url : str, db_name : str, table_name
             ("Duplicate Count", col_dup_count),
             ("Duplicate %", col_dup_percent),
         ]
+
         for m, v in col_metrics:
             metrics.append(Metrics(db_name=db_name,
                                    table_name = table_name,
                                    metric_type=f'{m} [{col}]',
                                    value=float(v)))   
-
-    output_engine = create_engine(db_output_url)
-    Base.metadata.create_all(output_engine)
-    Session = sessionmaker(bind=output_engine)
-    session=Session()
-
-    session.add_all(metrics)
-    session.commit()
-    session.close()
-    print(f'Metrics for table - {table_name} saved')
-
-if __name__ == '__main__':
-    db_input_url = "mysql+mysqlconnector://root:rootroot@localhost/training"
-    db_output_url = "mysql+mysqlconnector://root:rootroot@localhost/metrics_db"
-
-    profiling(db_input_url, db_output_url, db_name="training", table_name="sales_rep")    
             
+    return metrics
 
+app = FastAPI()
+@app.post('/profile',response_model=list[MetricResponse])
+def post_metrics(request : MetricCreate, db: Session = Depends(get_db)):
+    metrics = profiling_metrics(
+        db_input_url=request.db_input_url,
+        db_name= request.db_name,
+        table_name= request.table_name
+    )
+    db.add_all(metrics)
+    db.commit()
+    return metrics
+
+@app.get('/metrics', response_model=list[MetricResponse])
+def get_metrics(db: Session = Depends(get_db)):
+    return db.query(Metrics).all()
