@@ -16,7 +16,8 @@ class Metrics(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     db_name = Column(String(255), nullable=False)       
-    table_name = Column(String(255), nullable=False)    
+    table_name = Column(String(255), nullable=False) 
+    column_name = Column(String(255))   
     metric_type = Column(String(255), nullable=False)   
     value = Column(Float)
 Base.metadata.create_all(bind=engine)
@@ -32,10 +33,11 @@ class MetricResponse(BaseModel):
     id : int
     db_name : str
     table_name : str
+    column_name : str
     metric_type : str
     value : float
-    # class Config:
-    #     orm_mode = True
+    class Config:
+        orm_mode = True
 
 
 def get_db():
@@ -54,32 +56,34 @@ def profiling_metrics(db_input_url : str, db_name : str, table_name: str):
 
     total_rows = len(df)
     total_cols = df.shape[1]
-    null_counts = df.isnull().sum()
-
-    if total_rows > 0:
-        null_percentage = (null_counts / total_rows * 100).round(2)
-    else:
-        null_percentage = pd.Series([0] * len(df.columns), index=df.columns)
-
+    null_counts = df.isnull().sum().sum()
+    null_percentage = round((null_counts/total_rows*100),2) if total_rows > 0 else 0
+    
     duplicate_count = df.duplicated().sum()
     duplicate_percentage = round((duplicate_count / total_rows) * 100, 2) if total_rows > 0 else 0
 
     metrics = []
-    metric_type = ["Total Rows", "Total Columns", "Row-wise Duplicate Count", "Row-wise Duplicate %"]
-    values = [total_rows, total_cols, duplicate_count, duplicate_percentage]
+    metric_type = ["Total Rows", "Total Columns", "Total Null Count","Total Null %","Total Duplicate Count", "Total Duplicate %"]
+    values = [total_rows, total_cols, null_counts, null_percentage, duplicate_count, duplicate_percentage]
 
     for m, v in zip(metric_type, values):
         metrics.append(Metrics(db_name=db_name,
-                                   table_name = table_name,
-                                   metric_type=m,
-                                   value=float(v)))
-        
+                                table_name = table_name,
+                                column_name ="ALL",
+                                metric_type=m,
+                                value=float(v)))
+    null_counts_per_col = df.isnull().sum()
+    if total_rows > 0:
+        null_percentage_per_col = round((null_counts_per_col / total_rows * 100),2)
+    else:
+        null_percentage_per_col = pd.Series([0] * len(df.columns), index=df.columns)
+    
     for col in df.columns:
         col_dup_count = df[col].duplicated().sum()
         col_dup_percent = round((col_dup_count / total_rows) * 100, 2) if total_rows > 0 else 0
         col_metrics = [
-            ("Null Count", null_counts[col]),
-            ("Null %", null_percentage[col]),
+            ("Null Count", null_counts_per_col[col]),
+            ("Null %", null_percentage_per_col[col]),
             ("Duplicate Count", col_dup_count),
             ("Duplicate %", col_dup_percent),
         ]
@@ -87,7 +91,8 @@ def profiling_metrics(db_input_url : str, db_name : str, table_name: str):
         for m, v in col_metrics:
             metrics.append(Metrics(db_name=db_name,
                                    table_name = table_name,
-                                   metric_type=f'{m} [{col}]',
+                                   column_name = col,
+                                   metric_type=m,
                                    value=float(v)))   
             
     return metrics
