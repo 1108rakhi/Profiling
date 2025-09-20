@@ -2,7 +2,8 @@ from sqlalchemy import create_engine, Column, Integer, String, Float
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from pydantic import BaseModel
 import pandas as pd
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
+from typing import Optional
 
 # Setting up databse
 metrics_db_url = "mysql+mysqlconnector://root:rootroot@localhost:3306/metrics_db"  # tells sql alchemy how to connect to db
@@ -110,5 +111,19 @@ def post_metrics(request : MetricCreate, db: Session = Depends(get_db)):
     return metrics
 
 @app.get('/metrics', response_model=list[MetricResponse])
-def get_metrics(db: Session = Depends(get_db)):
-    return db.query(Metrics).all()
+def get_metrics(db: Session = Depends(get_db),
+                db_name:Optional[str] = Query(None),
+                table_name : Optional[str] = Query(None),
+                column_name : Optional[str] = Query(None),
+                metric_type : Optional[str] =Query(None)):
+    query = db.query(Metrics)
+    if db_name:
+        query = query.filter(Metrics.db_name ==db_name)
+    if table_name:
+        query = query.filter(Metrics.table_name == table_name)
+    if column_name:
+        query = query.filter(Metrics.column_name ==column_name)
+
+    if metric_type:
+        query = query.filter(Metrics.metric_type == metric_type)
+    return query.all()
